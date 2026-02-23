@@ -1,0 +1,41 @@
+name: agrow
+description: "A Flutter app for farmers."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.0.7       # For crop disease image upload
+  flutter_localizations:     # For multilingual support
+    sdk: flutter
+  intl: 0.20.2
+  google_generative_ai: ^0.4.6
+  flutter_markdown: ^0.6.17
+  url_launcher: ^6.1.10
+  http: ^1.1.0
+  geolocator: ^10.0.0
+  flutter_dotenv: ^5.1.0
+  provider: ^6.1.1
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  flutter_staggered_animations: ^1.1.1
+  geocoding: ^3.0.0
+  transparent_image: ^2.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true  # Enable generation of localization files
+  
+  assets:
+    - .env

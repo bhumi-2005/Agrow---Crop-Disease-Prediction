@@ -1,0 +1,144 @@
+  Future<void> getGeminiResponse() async {
+    setState(() {
+      isLoading = true;
+      aiResponse = null;
+      searchImages = [];  // Clear previous images
+    });
+
+    try {
+      final Map<String, dynamic> requestBody = {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": """You are an AI assistant for a Smart Agricultural Advisory System. Based on the following pest and crop details, provide specific pesticide recommendations:
+
+Issue Type: ${issueSelectionMethod == 'dropdown' ? selectedIssue : enteredIssue}
+Crop Type: ${cropSelectionMethod == 'dropdown' ? selectedCropType : enteredCropType}
+Pest Type: ${pestSelectionMethod == 'dropdown' ? selectedPestType : enteredPestType}
+Region: ${regionSelectionMethod == 'dropdown' ? selectedRegion : enteredRegion}
+Planting Month: ${monthSelectionMethod == 'dropdown' ? selectedPlantingMonth : selectedPlantingMonth}
+Additional Information: $extraInfo
+
+i want first line as pesticide or whatever remdy name only name strictly and then leave a line and then 
+all below procedures
+generate proper formatted beautified text
+Please provide detailed advice on:
+1. Recommended pesticide name and then leave line
+2. Safety precautions while applying pesticides
+3. Natural/organic alternatives if available
+4. Preventive measures for future
+5. Best time for pesticide application
+6. Integration with other pest management practices
+7. dosage"""
+              }
+            ]
+          }
+        ],
+        "generationConfig": {
+          "temperature": 0.7,
+          "topK": 40,
+          "topP": 0.95,
+          "maxOutputTokens": 800,
+        }
+      };
+
+      final response = await http.post(
+        Uri.parse("$apiUrl?key=$apiKey"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        setState(() {
+          aiResponse = "Error: API request failed with status ${response.statusCode}";
+          firstLine = null;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> responseJson = jsonDecode(response.body);
+      
+      if (!responseJson.containsKey('candidates') || 
+          responseJson['candidates'] == null ||
+          (responseJson['candidates'] as List).isEmpty) {
+        setState(() {
+          aiResponse = "Error: No response received from AI";
+          firstLine = null;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> firstCandidate = responseJson['candidates'][0];
+      
+      // Check for MAX_TOKENS error
+      if (firstCandidate['finishReason'] == 'MAX_TOKENS') {
+        setState(() {
+          aiResponse = "Response was too long. Please try with more specific details.";
+          firstLine = null;
+        });
+        return;
+      }
+
+      // Get the content map
+      final Map<String, dynamic>? content = firstCandidate['content'];
+      if (content == null) {
+        setState(() {
+          aiResponse = "Error: Response content is missing";
+          firstLine = null;
+        });
+        return;
+      }
+
+      // Get the parts list
+      final List<dynamic>? parts = content['parts'];
+      if (parts == null || parts.isEmpty) {
+        setState(() {
+          aiResponse = "Error: Response parts are missing";
+          firstLine = null;
+        });
+        return;
+      }
+
+      // Get the text from the first part
+      final Map<String, dynamic> firstPart = parts[0];
+      final String? text = firstPart['text'];
+      if (text == null || text.isEmpty) {
+        setState(() {
+          aiResponse = "Error: Response text is empty";
+          firstLine = null;
+        });
+        return;
+      }
+
+      // Process valid response
+      setState(() {
+        aiResponse = text;
+        firstLine = text.split('\n').firstWhere(
+          (line) => line.trim().isNotEmpty,
+          orElse: () => ''
+        );
+      });
+
+      if (firstLine?.isNotEmpty == true) {
+        await fetchImages(firstLine!);
+      }
+
+    } catch (e, stackTrace) {
+      print('Error in getGeminiResponse: $e');
+      print('Stack trace: $stackTrace');
+      setState(() {
+        aiResponse = "Error: $e";
+        firstLine = null;
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
